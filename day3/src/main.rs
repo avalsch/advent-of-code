@@ -42,15 +42,14 @@ fn main() {
 }
 
 fn two_numbers((row, col): (usize, usize), numbers: &[Number]) -> Option<(u32, u32)> {
-    let matches = &numbers
+    if let [a, b] = numbers
         .iter()
         .filter(|n| {
             row.abs_diff(n.row) <= 1
                 && (n.span.contains(&col) || n.span.start == col + 1 || n.span.end == col)
         })
-        .collect::<Vec<_>>()[..];
-
-    if let [a, b] = matches {
+        .collect::<Vec<_>>()[..]
+    {
         Some((a.value, b.value))
     } else {
         None

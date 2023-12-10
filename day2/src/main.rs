@@ -18,20 +18,20 @@ fn main() {
 }
 
 fn parse_game_maxs(game: &str) -> Game {
-    let [_, records] = &game.split(':').collect::<Vec<_>>()[..] else {
+    let [_, records] = game.split(':').collect::<Vec<_>>()[..] else {
         unreachable!()
     };
 
     records
         .split([',', ';'])
         .fold(Game::default(), |game, record| {
-            let [count, color] = &record.split_whitespace().collect::<Vec<_>>()[..] else {
+            let [count, color] = record.split_whitespace().collect::<Vec<_>>()[..] else {
                 unreachable!()
             };
 
             let count = count.parse().unwrap();
 
-            match *color {
+            match color {
                 "red" => Game {
                     red: game.red.max(count),
                     ..game

@@ -6,7 +6,7 @@ fn main() {
     for (i, card) in input.lines().enumerate() {
         let card_copies = copies[i];
 
-        let [_card, numbers, winners] = &card.split([':', '|']).collect::<Vec<_>>()[..] else {
+        let [_card, numbers, winners] = card.split([':', '|']).collect::<Vec<_>>()[..] else {
             unreachable!()
         };
 
