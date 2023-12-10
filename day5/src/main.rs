@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::ops::Range;
 
+use itertools::Itertools;
+
 fn main() {
     let input = std::fs::read_to_string("input").unwrap();
 
@@ -12,7 +14,8 @@ fn main() {
         .split_whitespace()
         .skip(1)
         .map(|n| n.parse::<u64>().unwrap())
-        .collect::<Vec<_>>();
+        .tuples()
+        .flat_map(|(start, len)| start..start + len);
 
     let mut maps = HashMap::new();
 
@@ -45,8 +48,6 @@ fn main() {
     }
 
     let locations = seeds
-        .iter()
-        .copied()
         .map(|seed| get_dest(seed, &maps["seed-to-soil"]))
         .map(|soil| get_dest(soil, &maps["soil-to-fertilizer"]))
         .map(|fert| get_dest(fert, &maps["fertilizer-to-water"]))
