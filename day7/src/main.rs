@@ -5,11 +5,21 @@ use std::str::FromStr;
 
 use itertools::Itertools;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum Card {
+    Joker,
+    Number(u8),
+    Ten,
+    Queen,
+    King,
+    Ace,
+}
+
 #[derive(PartialEq, Eq)]
-struct Hand([u8; 5]);
+struct Hand([Card; 5]);
 
 impl Hand {
-    fn counts(&self) -> HashMap<u8, usize> {
+    fn counts(&self) -> HashMap<Card, usize> {
         self.0.into_iter().counts()
     }
 }
@@ -21,17 +31,20 @@ impl FromStr for Hand {
         let hand = s
             .chars()
             .map(|c| {
-                c.to_digit(10).map(|n| n as u8).unwrap_or_else(|| match c {
-                    'T' => 10,
-                    'J' => 11,
-                    'Q' => 12,
-                    'K' => 13,
-                    'A' => 14,
-                    _ => unreachable!(),
-                })
+                c.to_digit(10)
+                    .map(|n| Card::Number(n as u8))
+                    .unwrap_or_else(|| match c {
+                        'T' => Card::Ten,
+                        'Q' => Card::Queen,
+                        'K' => Card::King,
+                        'A' => Card::Ace,
+                        'J' => Card::Joker,
+                        _ => unreachable!(),
+                    })
             })
-            .collect::<Vec<_>>();
-        let hand = hand.try_into().unwrap();
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
 
         Ok(Hand(hand))
     }
@@ -45,16 +58,38 @@ impl PartialOrd for Hand {
 
 impl Ord for Hand {
     fn cmp(&self, other: &Self) -> Ordering {
-        let mut s = self.counts().into_values().collect::<Vec<_>>();
+        let mut s = self.counts();
+        let mut o = other.counts();
+
+        let s_jokers = s
+            .remove_entry(&Card::Joker)
+            .map(|(_, n)| n)
+            .unwrap_or_default();
+        let o_jokers = o
+            .remove_entry(&Card::Joker)
+            .map(|(_, n)| n)
+            .unwrap_or_default();
+
+        let mut s = s.into_values().collect::<Vec<_>>();
         s.sort_by(|a, b| b.cmp(a));
+        if s.is_empty() {
+            s.push(0);
+        }
+        if let Some(n) = s.first_mut() {
+            *n += s_jokers;
+        }
 
-        let mut o = other.counts().into_values().collect::<Vec<_>>();
+        let mut o = o.into_values().collect::<Vec<_>>();
         o.sort_by(|a, b| b.cmp(a));
+        if o.is_empty() {
+            o.push(0);
+        }
+        if let Some(n) = o.first_mut() {
+            *n += o_jokers;
+        }
 
-        let ord = s.cmp(&o);
-
-        match ord {
-            Ordering::Greater | Ordering::Less => ord,
+        match s.cmp(&o) {
+            ord @ (Ordering::Greater | Ordering::Less) => ord,
             Ordering::Equal => self.0.cmp(&other.0),
         }
     }
