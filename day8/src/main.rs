@@ -1,5 +1,9 @@
 use std::collections::HashMap;
 
+use num::Integer;
+use petgraph::visit::EdgeRef;
+use petgraph::Graph;
+
 #[derive(PartialEq, Eq)]
 enum Dir {
     Left,
@@ -13,7 +17,36 @@ fn main() {
     let directions = lines.next().unwrap();
     let _ = lines.next();
 
-    let mut directions = directions
+    let mut nodes = HashMap::new();
+    let mut graph = Graph::new();
+
+    for line in lines {
+        let [node, connections] = line.split(" = ").collect::<Vec<_>>()[..] else {
+            unreachable!()
+        };
+        let node = node.to_owned();
+        let [left, right] = connections[1..9].split(", ").collect::<Vec<_>>()[..] else {
+            unreachable!()
+        };
+        let left = left.to_owned();
+        let right = right.to_owned();
+
+        let node = *nodes
+            .entry(node.clone())
+            .or_insert_with(|| graph.add_node(node));
+
+        let left = *nodes
+            .entry(left.clone())
+            .or_insert_with(|| graph.add_node(left));
+        let right = *nodes
+            .entry(right.clone())
+            .or_insert_with(|| graph.add_node(right));
+
+        graph.add_edge(node, left, Dir::Left);
+        graph.add_edge(node, right, Dir::Right);
+    }
+
+    let directions = directions
         .chars()
         .map(|c| match c {
             'L' => Dir::Left,
@@ -22,38 +55,27 @@ fn main() {
         })
         .cycle();
 
-    let map = lines
-        .map(|line| {
-            let [node, connections] = line.split('=').collect::<Vec<_>>()[..] else {
-                unreachable!()
-            };
+    let nodes = graph.node_indices().filter(|&i| graph[i].ends_with('A'));
 
-            let node = node.trim().to_string();
-            let [l, r] = connections[2..10].trim().split(',').collect::<Vec<_>>()[..] else {
-                unreachable!()
-            };
-            let l = l.trim().to_string();
-            let r = r.trim().to_string();
+    let steps = nodes
+        .map(|mut node| {
+            let mut steps: u64 = 0;
+            let mut dirs = directions.clone();
 
-            (node, (l, r))
+            while !graph[node].ends_with('Z') {
+                let dir = dirs.next().unwrap();
+                node = graph
+                    .edges(node)
+                    .find(|e| *e.weight() == dir)
+                    .unwrap()
+                    .target();
+
+                steps += 1;
+            }
+
+            steps
         })
-        .collect::<HashMap<String, (String, String)>>();
-
-    let mut node = &map["AAA"];
-    let mut steps = 0;
-
-    loop {
-        steps += 1;
-        let next = match directions.next().unwrap() {
-            Dir::Left => &node.0,
-            Dir::Right => &node.1,
-        };
-        if next != "ZZZ" {
-            node = &map[next];
-        } else {
-            break;
-        }
-    }
+        .fold(1, |a, b| a.lcm(&b));
 
     println!("{steps}");
 }
